@@ -76,7 +76,7 @@ var anim =
       timeLen = now - task.framesStart;
 
       if (timeLen >= task.duration && task.count && task.loopsLeft <= 1) {
-        frame = task.frames[(task.lastFrame = task.reverse ? 0 : task.frames.length - 1)];
+        frame = task.frames[(task.lastFrame =  task.frames.length - 1)];
         task.frameCallback(frame.value, true, frame.timeRatio, frame.outputRatio);
         task.framesStart = null;
         return;
@@ -85,7 +85,7 @@ var anim =
         loops = Math.floor(timeLen / task.duration);
         if (task.count) {
           if (loops >= task.loopsLeft) { // Here `task.loopsLeft > 1`
-            frame = task.frames[(task.lastFrame = task.reverse ? 0 : task.frames.length - 1)];
+            frame = task.frames[(task.lastFrame =  task.frames.length - 1)];
             task.frameCallback(frame.value, true, frame.timeRatio, frame.outputRatio);
             task.framesStart = null;
             return;
@@ -96,7 +96,6 @@ var anim =
         timeLen = now - task.framesStart;
       }
 
-      if (task.reverse) { timeLen = task.duration - timeLen; }
       frame = task.frames[(task.lastFrame = Math.round(timeLen / MSPF))];
       if (task.frameCallback(frame.value, false, frame.timeRatio, frame.outputRatio
           /* [DEBUG] */, timeLen/* [/DEBUG] */) !== false) {
@@ -126,7 +125,7 @@ var anim =
   function startTask(task, timeRatio) {
     task.framesStart = Date.now();
     if (timeRatio != null) {
-      task.framesStart -= task.duration * (task.reverse ? 1 - timeRatio : timeRatio);
+      task.framesStart -= task.duration *  timeRatio;
     }
     task.loopsLeft = task.count;
     task.lastFrame = null;
@@ -253,7 +252,6 @@ var anim =
         if (task.animId === animId) {
           if (!getTimeRatioByFrame) {
             timeRatio = (Date.now() - task.framesStart) / task.duration;
-            if (task.reverse) { timeRatio = 1 - timeRatio; }
             if (timeRatio < 0) {
               timeRatio = 0;
             } else if (timeRatio > 1) {

@@ -2009,6 +2009,66 @@
       updated = false;
 
     if (pathList) {
+      if (!props.aplStats.show_on) {
+        var defaultPathList = [
+          [
+            {
+              x: aplStats.position_socketXYSE[0].x,
+              y: aplStats.position_socketXYSE[0].y,
+            },
+            {
+              x: aplStats.position_socketXYSE[1].x,
+              y: aplStats.position_socketXYSE[0].y,
+            },
+          ],
+          [
+            {
+              x: aplStats.position_socketXYSE[1].x,
+              y: aplStats.position_socketXYSE[0].y,
+            },
+            {
+              x: aplStats.position_socketXYSE[1].x,
+              y: aplStats.position_socketXYSE[1].y,
+            },
+          ],
+        ];
+        var cloneDefaultPathList = copyTree(defaultPathList);
+        pathList.forEach(function (pathSeg, i) {
+          pathSeg.forEach(function (point, j) {
+            cloneDefaultPathList[i][j].x +=
+              point.x - cloneDefaultPathList[i][j].x;
+            cloneDefaultPathList[i][j].y +=
+              point.y - cloneDefaultPathList[i][j].y;
+          });
+        });
+        var yAxis = null;
+        if (cloneDefaultPathList[1][1].y<defaultPathList[1][1].y) {
+          yAxis=cloneDefaultPathList[1][1].y;
+        }
+        pathList = [
+          [
+            {
+              x: cloneDefaultPathList[0][1].x,
+              y: yAxis || defaultPathList[0][0].y,
+            },
+            {
+              x: defaultPathList[0][1].x,
+              y: yAxis || defaultPathList[0][1].y,
+            },
+          ],
+          [
+            {
+              x: defaultPathList[1][0].x,
+              y: yAxis || defaultPathList[1][0].y,
+            },
+            {
+              x: defaultPathList[1][1].x,
+              y: defaultPathList[1][1].y,
+            },
+          ],
+        ];
+      }
+
       curEdge.x1 = curEdge.x2 = pathList[0][0].x;
       curEdge.y1 = curEdge.y2 = pathList[0][0].y;
       curStats.path_pathData = curPathData = pathList2PathData(pathList, function(point) {
@@ -2017,7 +2077,7 @@
         if (point.x > curEdge.x2) { curEdge.x2 = point.x; }
         if (point.y > curEdge.y2) { curEdge.y2 = point.y; }
       });
-
+      
       // Apply `pathData`
       if (pathDataHasChanged(curPathData, aplStats.path_pathData)) {
         traceLog.add('path_pathData'); // [DEBUG/]
@@ -3493,6 +3553,14 @@
         set: createSetter(propName),
         enumerable: true
       });
+    });
+
+    // Expose the generated SVG element on the instance.
+    Object.defineProperty(LeaderLine.prototype, 'svg', {
+      get: function() {
+        return insProps[this._id].svg;
+      },
+      enumerable: true
     });
   })();
 
