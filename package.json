@@ -35,7 +35,8 @@
     "uglify-js": "^3.13.7"
   },
   "scripts": {
-    "test": "node ./test/httpd"
+    "test": "node ./test/httpd",
+    "build": "grunt && cp /Users/rohanacar/Projects/XMRSoft/OpenSource/leader-line/leader-line.min.js /Users/rohanacar/Projects/XMRSoft/as1/app/src/renderer/public/"
   },
   "homepage": "https://anseki.github.io/leader-line/",
   "repository": {
@@ -47,5 +48,6 @@
   "author": {
     "name": "anseki",
     "url": "https://github.com/anseki"
-  }
+  },
+  "packageManager": "pnpm@8.6.0+sha512.b8c69619796f1be9b934825a47824411e9c285b83ed403f8cd5a6ab383c4719838b87fa55cc4ddfd7fe58ab29903e4c2d30d1dfbefb2ddbb4835cc322acbb000"
 }

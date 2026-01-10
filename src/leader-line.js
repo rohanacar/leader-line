@@ -1047,6 +1047,9 @@
     */
 
     props.face = svg.appendChild(baseDocument.createElementNS(SVG_NS, 'g'));
+    props.lineFaceBackground = element = props.face.appendChild(baseDocument.createElementNS(SVG_NS, 'use'));
+    element.href.baseVal = '#' + lineShapeId;
+
     props.lineFace = element = props.face.appendChild(baseDocument.createElementNS(SVG_NS, 'use'));
     element.href.baseVal = '#' + lineShapeId;
 
@@ -1298,6 +1301,9 @@
     traceLog.add('<updateFaces>'); // [DEBUG/]
     var curStats = props.curStats, aplStats = props.aplStats, events = props.events,
       value, updated = false;
+
+    props.lineFaceBackground.style.stroke = props.options.background;
+    props.lineFaceBackground.style.strokeWidth = props.options.lineSize + 'px';
 
     if (!curStats.line_altColor &&
         setStat(props, aplStats, 'line_color', (value = curStats.line_color),
@@ -2001,72 +2007,54 @@
    * @param {props} props - `props` of `LeaderLine` instance.
    * @returns {boolean} `true` if it was changed.
    */
-  function updatePath(props) {
+  function updatePath(props,reverse=false) {
     traceLog.add('<updatePath>'); // [DEBUG/]
     var curStats = props.curStats, aplStats = props.aplStats,
-      pathList = props.pathList.animVal || props.pathList.baseVal,
+      pathList = JSON.parse(JSON.stringify(props.pathList.animVal || props.pathList.baseVal)),
       curPathData, curEdge = curStats.path_edge,
       updated = false;
-
+    const initialPathList = JSON.parse(JSON.stringify(pathList));
     if (pathList) {
-      if (!props.aplStats.show_on) {
-        var defaultPathList = [
-          [
-            {
-              x: aplStats.position_socketXYSE[0].x,
-              y: aplStats.position_socketXYSE[0].y,
-            },
-            {
-              x: aplStats.position_socketXYSE[1].x,
-              y: aplStats.position_socketXYSE[0].y,
-            },
-          ],
-          [
-            {
-              x: aplStats.position_socketXYSE[1].x,
-              y: aplStats.position_socketXYSE[0].y,
-            },
-            {
-              x: aplStats.position_socketXYSE[1].x,
-              y: aplStats.position_socketXYSE[1].y,
-            },
-          ],
-        ];
-        var cloneDefaultPathList = copyTree(defaultPathList);
+      if (reverse && [PATH_GRID, PATH_STRAIGHT].includes(props.options.path)) {
         pathList.forEach(function (pathSeg, i) {
           pathSeg.forEach(function (point, j) {
-            cloneDefaultPathList[i][j].x +=
-              point.x - cloneDefaultPathList[i][j].x;
-            cloneDefaultPathList[i][j].y +=
-              point.y - cloneDefaultPathList[i][j].y;
+            point.defaultX = props.pathList.baseVal[i][j].x;
+            point.defaultY = props.pathList.baseVal[i][j].y;
           });
         });
-        var yAxis = null;
-        if (cloneDefaultPathList[1][1].y<defaultPathList[1][1].y) {
-          yAxis=cloneDefaultPathList[1][1].y;
+        props.pathList.baseVal.forEach(function (pathSeg, i) {
+          if (!pathList[i]) {
+            pathList.push(pathSeg);
+          }
+        });
+        pathList.forEach(function (pathSeg, i) {
+          if (!pathSeg[1].defaultX || !pathSeg[1].defaultY) return;
+          if (pathSeg[0].x !== pathSeg[1].defaultX) {
+            pathSeg[0].x = pathSeg[1].x;
+            pathSeg[1].x = pathSeg[1].defaultX;
+          }
+          if (pathSeg[0].y !== pathSeg[1].defaultY) {
+            pathSeg[0].y = pathSeg[1].y;
+            pathSeg[1].y = pathSeg[1].defaultY;
+          }
+        });
+
+        let updated = 0;
+        pathList.forEach(function (pathSeg, i) {
+          if (!(pathSeg[0].x === pathSeg[1].x && pathSeg[0].y === pathSeg[1].y)&&(pathSeg[1].defaultX || pathSeg[1].defaultY)) {
+             updated = i;
+          }
+        });
+        if (updated !== 0) {
+          pathList.forEach(function (pathSeg, i) {
+            if (i < updated) {
+              pathSeg.forEach(function (point, j) {
+                point.x = pathList[updated][0].x;
+                point.y = pathList[updated][0].y;
+              });
+            }
+          });
         }
-        pathList = [
-          [
-            {
-              x: cloneDefaultPathList[0][1].x,
-              y: yAxis || defaultPathList[0][0].y,
-            },
-            {
-              x: defaultPathList[0][1].x,
-              y: yAxis || defaultPathList[0][1].y,
-            },
-          ],
-          [
-            {
-              x: defaultPathList[1][0].x,
-              y: yAxis || defaultPathList[1][0].y,
-            },
-            {
-              x: defaultPathList[1][1].x,
-              y: defaultPathList[1][1].y,
-            },
-          ],
-        ];
       }
 
       curEdge.x1 = curEdge.x2 = pathList[0][0].x;
@@ -2100,7 +2088,7 @@
         }
       }
     }
-
+    
     if (!updated) { traceLog.add('not-updated'); } // [DEBUG/]
     traceLog.add('</updatePath>'); // [DEBUG/]
     return updated;
@@ -2388,7 +2376,7 @@
    * @param {Object} needs - `group` of stats.
    * @returns {void}
    */
-  function update(props, needs) {
+  function update(props, needs,reverse=false) {
     var updated = {};
     if (needs.line) {
       updated.line = updateLine(props);
@@ -2409,7 +2397,7 @@
       updated.position = updatePosition(props);
     }
     if (needs.path || updated.position) {
-      updated.path = updatePath(props);
+      updated.path = updatePath(props,reverse);
     }
     updated.viewBox = updateViewBox(props);
     updated.mask = updateMask(props);
@@ -2548,6 +2536,7 @@
       ----------------------------------------
       anchorSE                start, end
       lineColor               color
+      background              background
       lineSize                size
       socketSE                startSocket, endSocket
       socketGravitySE         startSocketGravity, endSocketGravity
@@ -2562,6 +2551,11 @@
       plugOutlineSizeSE       startPlugOutlineSize, endPlugOutlineSize
       labelSEM                startLabel, endLabel, middleLabel
     */
+
+    if (newOptions.background) {
+      props.options.background = newOptions.background;
+    }
+    
     var options = props.options,
       newWindow, needsWindow, needs = {};
 
@@ -3332,12 +3326,12 @@
             }
             return newPathList;
           },
-          function(value, finish) {
+          function(value, finish,reverse) {
             if (finish) {
               SHOW_EFFECTS.draw.stop(props, true);
             } else {
               props.pathList.animVal = value;
-              update(props, {path: true});
+              update(props, {path: true},reverse);
             }
           },
           aplStats.show_animOptions.duration, 1, aplStats.show_animOptions.timing, null, false);

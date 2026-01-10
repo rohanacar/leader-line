@@ -77,7 +77,7 @@ var anim =
 
       if (timeLen >= task.duration && task.count && task.loopsLeft <= 1) {
         frame = task.frames[(task.lastFrame =  task.frames.length - 1)];
-        task.frameCallback(frame.value, true, frame.timeRatio, frame.outputRatio);
+        task.frameCallback(frame.value, true,task.reverse, frame.timeRatio, frame.outputRatio);
         task.framesStart = null;
         return;
       }
@@ -86,7 +86,7 @@ var anim =
         if (task.count) {
           if (loops >= task.loopsLeft) { // Here `task.loopsLeft > 1`
             frame = task.frames[(task.lastFrame =  task.frames.length - 1)];
-            task.frameCallback(frame.value, true, frame.timeRatio, frame.outputRatio);
+            task.frameCallback(frame.value, true,task.reverse, frame.timeRatio, frame.outputRatio);
             task.framesStart = null;
             return;
           }
@@ -97,7 +97,7 @@ var anim =
       }
 
       frame = task.frames[(task.lastFrame = Math.round(timeLen / MSPF))];
-      if (task.frameCallback(frame.value, false, frame.timeRatio, frame.outputRatio
+      if (task.frameCallback(frame.value, false,task.reverse, frame.timeRatio, frame.outputRatio
           /* [DEBUG] */, timeLen/* [/DEBUG] */) !== false) {
         next = true;
       } else {
